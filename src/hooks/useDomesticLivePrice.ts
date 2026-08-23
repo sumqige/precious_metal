@@ -3,12 +3,12 @@ import type { DomesticMetal } from '../lib/mockData'
 
 /**
  * Simulates live price updates for domestic retail metals.
- * Accepts isOpen flag — when false (market closed), stops updating prices
- * and suppresses tick-direction flash.
+ * Accepts openStatusMap — when a metal's value is false (market closed),
+ * that metal stops updating and suppresses tick-direction flash.
  */
 export function useDomesticLivePrice(
   initial: DomesticMetal[],
-  isOpen = true,
+  openStatusMap: Record<string, boolean> = {},
   intervalMs = 3000,
 ) {
   const [metals, setMetals] = useState<DomesticMetal[]>(initial)
@@ -23,8 +23,9 @@ export function useDomesticLivePrice(
   }, [])
 
   useEffect(() => {
-    // Stop the interval immediately when market is closed
-    if (!isOpen) {
+    // If no metal is open, stop the interval entirely
+    const anyOpen = Object.values(openStatusMap).some(Boolean)
+    if (!anyOpen) {
       stop()
       setTickDir({})
       return
@@ -33,6 +34,9 @@ export function useDomesticLivePrice(
     timer.current = window.setInterval(() => {
       setMetals((prev) =>
         prev.map((m) => {
+          // Skip metals whose market is closed
+          if (!openStatusMap[m.id]) return m
+
           const vol = Math.max(m.price * 0.0006, 0.05)
           const delta = (Math.random() - 0.5) * vol * 2
           const nextPrice = Math.round((m.price + delta) * 100) / 100
@@ -57,7 +61,7 @@ export function useDomesticLivePrice(
       )
     }, intervalMs)
     return stop
-  }, [isOpen, intervalMs, stop])
+  }, [openStatusMap, intervalMs, stop])
 
   useEffect(() => {
     if (Object.keys(tickDir).length === 0) return

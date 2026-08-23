@@ -36,13 +36,6 @@ ChartJS.register(
   Legend,
 )
 
-/** Market session config for domestic retail precious metals */
-const MARKET_CONFIG = {
-  weekday: { open: '09:00', close: '22:00' },
-  weekend: { open: '09:30', close: '21:30' },
-  currency: '元/克',
-}
-
 type TimeRange = 'intraday' | 'week' | 'month' | 'year'
 
 const timeRangeTabs: { key: TimeRange; label: string }[] = [
@@ -52,72 +45,167 @@ const timeRangeTabs: { key: TimeRange; label: string }[] = [
   { key: 'year', label: '近一年' },
 ]
 
-/** Compute market status based on current time */
-function getMarketStatus() {
+/**
+ * 上海黄金交易所（SGE）交易时间表
+ * - 黄金/白银：日盘 + 夜盘
+ *   日盘：周一 08:50 开盘，周二至周五 09:00 开盘
+ *         上午盘 09:00-11:30，下午盘 13:30-15:30
+ *   夜盘：周一至周四 19:50 开盘，持续至次日 02:30（周五无夜盘）
+ * - 铂金/钯金：仅日盘（同日盘时间，无夜盘）
+ * - 周末：全天休市
+ * - 法定节假日：全天休市
+ */
+type MarketStatus = {
+  isOpen: boolean
+  openTime: string
+  closeTime: string
+  nextCloseLabel: string | null
+  nextOpenLabel: string | null
+  dayLabel: string
+}
+
+/** Compute market status based on Shanghai Gold Exchange schedule.
+ *  hasNightSession: true for gold/silver, false for platinum/palladium.
+ */
+function getMarketStatus(hasNightSession = true): MarketStatus {
   const now = new Date()
-  const day = now.getDay() // 0=Sun, 6=Sat
-  const isWeekend = day === 0 || day === 6
-  const session = isWeekend ? MARKET_CONFIG.weekend : MARKET_CONFIG.weekday
-
-  const [openH, openM] = session.open.split(':').map(Number)
-  const [closeH, closeM] = session.close.split(':').map(Number)
+  const day = now.getDay() // 0=周日, 1=周一, ..., 6=周六
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const openMinutes = openH * 60 + openM
-  const closeMinutes = closeH * 60 + closeM
 
-  const isOpen = nowMinutes >= openMinutes && nowMinutes < closeMinutes
+  // --- 交易时段（分钟数）---
+  const morningOpen = day === 1 ? 8 * 60 + 50 : 9 * 60 // 周一08:50, 其余09:00
+  const morningClose = 11 * 60 + 30 // 11:30
+  const afternoonOpen = 13 * 60 + 30 // 13:30
+  const afternoonClose = 15 * 60 + 30 // 15:30
+  const nightOpen = 19 * 60 + 50 // 19:50
+  const nightContinuationClose = 2 * 60 + 30 // 次日02:30
 
-  // Compute next open
-  const nextOpen = new Date(now)
-  if (isOpen) {
-    // Still open — next close is today
+  // --- 判断当前是否在交易时段 ---
+  const inMorning = nowMinutes >= morningOpen && nowMinutes < morningClose
+  const inAfternoon = nowMinutes >= afternoonOpen && nowMinutes < afternoonClose
+  const inNight = nowMinutes >= nightOpen // 19:50 至午夜
+  const inNightContinuation = nowMinutes < nightContinuationClose // 午夜至02:30
+
+  const validNight = hasNightSession && inNight && day >= 1 && day <= 4 // 周一至周四有夜盘
+  const validNightContinuation =
+    hasNightSession && inNightContinuation && day >= 2 && day <= 5 // 周二至周五凌晨
+
+  // --- 周末全天休市 ---
+  if (day === 0 || day === 6) {
     return {
-      isOpen: true,
-      openTime: session.open,
-      closeTime: session.close,
-      nextCloseLabel: `今日 ${session.close} 收盘`,
-      nextOpenLabel: null as string | null,
-      dayLabel: isWeekend ? '周末行情' : '工作日行情',
+      isOpen: false,
+      openTime: '08:50',
+      closeTime: '15:30',
+      nextCloseLabel: null,
+      nextOpenLabel: `周一 08:50 开盘`,
+      dayLabel: '周末休市',
     }
   }
 
-  // Closed — find next open
-  if (nowMinutes < openMinutes) {
-    // Before open today
-    nextOpen.setHours(openH, openM, 0, 0)
-  } else {
-    // After close — next open day
-    nextOpen.setDate(nextOpen.getDate() + 1)
-    const nextDay = nextOpen.getDay()
-    const nextIsWeekend = nextDay === 0 || nextDay === 6
-    const nextSession = nextIsWeekend ? MARKET_CONFIG.weekend : MARKET_CONFIG.weekday
-    nextOpen.setHours(
-      Number(nextSession.open.split(':')[0]),
-      Number(nextSession.open.split(':')[1]),
-      0,
-      0,
-    )
+  // --- 日盘交易中（所有品种共用） ---
+  if (inMorning || inAfternoon) {
+    return {
+      isOpen: true,
+      openTime: day === 1 ? '08:50' : '09:00',
+      closeTime: '15:30',
+      nextCloseLabel: `今日 ${inMorning ? '11:30' : '15:30'} 收盘`,
+      nextOpenLabel: null,
+      dayLabel: '日盘交易中',
+    }
   }
 
-  const nextOpenDayLabel =
-    nextOpen.toDateString() === now.toDateString()
-      ? '今日'
-      : nextOpen.toDateString() === new Date(now.getTime() + 86400000).toDateString()
-        ? '明日'
-        : `${nextOpen.getMonth() + 1}月${nextOpen.getDate()}日`
+  // --- 夜盘交易中（仅黄金/白银） ---
+  if (validNight) {
+    return {
+      isOpen: true,
+      openTime: '19:50',
+      closeTime: '次日 02:30',
+      nextCloseLabel: '次日 02:30 收盘',
+      nextOpenLabel: null,
+      dayLabel: '夜盘交易中',
+    }
+  }
 
-  const nextOpenSession =
-    nextOpen.getDay() === 0 || nextOpen.getDay() === 6
-      ? MARKET_CONFIG.weekend
-      : MARKET_CONFIG.weekday
+  if (validNightContinuation) {
+    return {
+      isOpen: true,
+      openTime: '19:50',
+      closeTime: '02:30',
+      nextCloseLabel: '今日 02:30 收盘',
+      nextOpenLabel: null,
+      dayLabel: '夜盘交易中',
+    }
+  }
 
+  // --- 休市中，计算下次开盘 ---
+  if (nowMinutes < morningOpen) {
+    // 凌晨02:30之后、日盘开盘之前
+    return {
+      isOpen: false,
+      openTime: day === 1 ? '08:50' : '09:00',
+      closeTime: '15:30',
+      nextCloseLabel: null,
+      nextOpenLabel: `今日 ${day === 1 ? '08:50' : '09:00'} 开盘`,
+      dayLabel: '休市中',
+    }
+  }
+
+  if (nowMinutes >= morningClose && nowMinutes < afternoonOpen) {
+    // 午间休市 11:30-13:30
+    return {
+      isOpen: false,
+      openTime: day === 1 ? '08:50' : '09:00',
+      closeTime: '15:30',
+      nextCloseLabel: null,
+      nextOpenLabel: '今日 13:30 开盘',
+      dayLabel: '午间休市',
+    }
+  }
+
+  if (nowMinutes >= afternoonClose && nowMinutes < nightOpen) {
+    // 日盘收盘后
+    if (!hasNightSession || day === 5) {
+      // 铂金/钯金无夜盘，或周五无夜盘
+      if (day === 5) {
+        return {
+          isOpen: false,
+          openTime: '08:50',
+          closeTime: '15:30',
+          nextCloseLabel: null,
+          nextOpenLabel: '下周一 08:50 开盘',
+          dayLabel: '休市中',
+        }
+      }
+      return {
+        isOpen: false,
+        openTime: '09:00',
+        closeTime: '15:30',
+        nextCloseLabel: null,
+        nextOpenLabel: hasNightSession
+          ? '今日 19:50 开盘'
+          : '明日 09:00 开盘',
+        dayLabel: '休市中',
+      }
+    }
+    // 黄金/白银工作日：等待夜盘开盘
+    return {
+      isOpen: false,
+      openTime: '19:50',
+      closeTime: '次日 02:30',
+      nextCloseLabel: null,
+      nextOpenLabel: '今日 19:50 开盘',
+      dayLabel: '休市中',
+    }
+  }
+
+  // 兜底
   return {
     isOpen: false,
-    openTime: session.open,
-    closeTime: session.close,
-    nextCloseLabel: null as string | null,
-    nextOpenLabel: `${nextOpenDayLabel} ${nextOpenSession.open} 开盘`,
-    dayLabel: isWeekend ? '周末行情' : '工作日行情',
+    openTime: '09:00',
+    closeTime: '15:30',
+    nextCloseLabel: null,
+    nextOpenLabel: '下个交易日 09:00 开盘',
+    dayLabel: '休市中',
   }
 }
 
@@ -209,8 +297,24 @@ function generateRangeData(
 }
 
 export default function DomesticPage() {
-  const marketStatus = useMemo(() => getMarketStatus(), [])
-  const { metals, tickDir } = useDomesticLivePrice(domesticMetals, marketStatus.isOpen)
+  // 黄金/白银有夜盘，铂金/钯金仅日盘
+  const goldSilverStatus = useMemo(() => getMarketStatus(true), [])
+  const platinumStatus = useMemo(() => getMarketStatus(false), [])
+
+  // 为每种金属构建独立的交易状态
+  const openStatusMap = useMemo<Record<string, boolean>>(
+    () => ({
+      au: goldSilverStatus.isOpen,
+      ag: goldSilverStatus.isOpen,
+      pt: platinumStatus.isOpen,
+      pd: platinumStatus.isOpen,
+    }),
+    [goldSilverStatus, platinumStatus],
+  )
+
+  // 顶部状态以黄金/白银为主（交易时段更长）
+  const marketStatus = goldSilverStatus
+  const { metals, tickDir } = useDomesticLivePrice(domesticMetals, openStatusMap)
   const { notify } = useToast()
   const [selectedMetal, setSelectedMetal] = useState<string>('au')
   const [timeRange, setTimeRange] = useState<TimeRange>('intraday')
@@ -319,7 +423,7 @@ export default function DomesticPage() {
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ backgroundColor: 'var(--brand-state-error)' }}
               />
-              行情已更新
+              已收盘
             </span>
           )}
 
@@ -366,8 +470,8 @@ export default function DomesticPage() {
             <MetalPriceRow
               key={m.id}
               metal={m}
-              tickDir={marketStatus.isOpen ? tickDir[m.id] : undefined}
-              isOpen={marketStatus.isOpen}
+              tickDir={openStatusMap[m.id] ? tickDir[m.id] : undefined}
+              isOpen={openStatusMap[m.id] ?? false}
             />
           ))}
         </div>
