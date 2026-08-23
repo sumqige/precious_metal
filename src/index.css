@@ -1,0 +1,250 @@
+@import 'tailwindcss';
+
+/* Gold & Silver Tracker — project-local brand tokens */
+:root {
+  /* Brand identity: refined precious-metal dark */
+  --brand-hue: 43;
+
+  /* Background / surface layers */
+  --brand-bg: #0f1115;
+  --brand-surface: #181b21;
+  --brand-surface-2: #22262e;
+  --brand-surface-3: #2b3039;
+
+  /* Text ink */
+  --brand-ink: #f5f5f4;
+  --brand-ink-2: #a1a1aa;
+  --brand-ink-3: #71717a;
+
+  /* Dividers / borders */
+  --brand-line: #2f3440;
+  --brand-border: #2f3440;
+
+  /* Primary brand hue (gold) */
+  --brand-primary: #d4a853;
+  --brand-primary-foreground: #141416;
+  --brand-primary-dim: rgba(212, 168, 83, 0.12);
+  --brand-primary-hover: #e6bd6e;
+  --brand-primary-active: #c29545;
+
+  /* Semantic state colors */
+  --brand-state-success: #22c55e;
+  --brand-state-warning: #f59e0b;
+  --brand-state-error: #ef4444;
+  --brand-state-info: #3b82f6;
+
+  /* Aliases required by head contract */
+  --brand-background: var(--brand-bg);
+  --brand-foreground: var(--brand-ink);
+  --brand-card: var(--brand-surface);
+  --brand-card-foreground: var(--brand-ink);
+  --brand-popover: var(--brand-surface-2);
+  --brand-popover-foreground: var(--brand-ink);
+  --brand-muted: var(--brand-surface-2);
+  --brand-muted-foreground: var(--brand-ink-2);
+  --brand-input: var(--brand-surface-2);
+  --brand-ring: var(--brand-primary);
+
+  /* Radius scale */
+  --brand-radius-sm: 4px;
+  --brand-radius-md: 8px;
+  --brand-radius-lg: 16px;
+  --brand-radius-pill: 999px;
+
+  /* Shadow scale (subtle dark surfaces) */
+  --brand-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.24), 0 1px 1px rgba(0, 0, 0, 0.16);
+  --brand-shadow-2: 0 8px 24px -8px rgba(0, 0, 0, 0.45);
+  --brand-shadow-3: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+
+  /* Spacing */
+  --brand-s-1: 4px;
+  --brand-s-2: 8px;
+  --brand-s-3: 12px;
+  --brand-s-4: 16px;
+  --brand-s-5: 24px;
+  --brand-s-6: 32px;
+  --brand-s-7: 48px;
+  --brand-s-8: 80px;
+
+  /* Typography */
+  --brand-font-sans:
+    'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  --brand-font-mono: 'SF Mono', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Noto Sans SC',
+    monospace;
+
+  /* Type scale */
+  --brand-display: clamp(36px, 5vw, 64px);
+  --brand-h1: clamp(28px, 3.2vw, 44px);
+  --brand-h2: clamp(22px, 2.2vw, 32px);
+  --brand-h3: 20px;
+  --brand-body-l: 18px;
+  --brand-body: 15px;
+  --brand-caption: 13px;
+  --brand-mono-size: 14px;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--brand-background);
+  --color-foreground: var(--brand-foreground);
+  --color-card: var(--brand-card);
+  --color-card-foreground: var(--brand-card-foreground);
+  --color-popover: var(--brand-popover);
+  --color-popover-foreground: var(--brand-popover-foreground);
+  --color-primary: var(--brand-primary);
+  --color-primary-foreground: var(--brand-primary-foreground);
+  --color-primary-hover: var(--brand-primary-hover);
+  --color-primary-active: var(--brand-primary-active);
+  --color-muted: var(--brand-muted);
+  --color-muted-foreground: var(--brand-muted-foreground);
+  --color-border: var(--brand-border);
+  --color-input: var(--brand-input);
+  --color-ring: var(--brand-ring);
+
+  --color-success: var(--brand-state-success);
+  --color-warning: var(--brand-state-warning);
+  --color-error: var(--brand-state-error);
+  --color-info: var(--brand-state-info);
+
+  --color-surface: var(--brand-surface);
+  --color-surface-2: var(--brand-surface-2);
+  --color-surface-3: var(--brand-surface-3);
+
+  --color-ink: var(--brand-ink);
+  --color-ink-2: var(--brand-ink-2);
+  --color-ink-3: var(--brand-ink-3);
+
+  --radius-sm: var(--brand-radius-sm);
+  --radius-md: var(--brand-radius-md);
+  --radius-lg: var(--brand-radius-lg);
+  --radius-pill: var(--brand-radius-pill);
+
+  --font-sans: var(--brand-font-sans);
+  --font-mono: var(--brand-font-mono);
+}
+
+@layer base {
+  * {
+    font-family: var(--brand-font-sans);
+  }
+  html {
+    background: var(--brand-bg);
+    color: var(--brand-ink);
+  }
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--brand-bg);
+    color: var(--brand-ink);
+  }
+  td,
+  th {
+    word-break: break-all;
+  }
+  th {
+    white-space: nowrap;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .bg-primary-hover:hover {
+    background-color: var(--brand-primary-hover);
+  }
+  .bg-primary-active:active {
+    background-color: var(--brand-primary-active);
+  }
+  .text-success {
+    color: var(--brand-state-success);
+  }
+  .text-error {
+    color: var(--brand-state-error);
+  }
+  .text-warning {
+    color: var(--brand-state-warning);
+  }
+  .text-info {
+    color: var(--brand-state-info);
+  }
+  .bg-success {
+    background-color: var(--brand-state-success);
+  }
+  .bg-error {
+    background-color: var(--brand-state-error);
+  }
+  .border-primary\/20 {
+    border-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  }
+  .bg-primary\/5 {
+    background-color: color-mix(in srgb, var(--brand-primary) 5%, transparent);
+  }
+  .bg-primary\/10 {
+    background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  }
+  .bg-primary\/20 {
+    background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  }
+
+  .signal-bull {
+    color: var(--brand-state-success);
+    background: color-mix(in srgb, var(--brand-state-success) 12%, transparent);
+  }
+  .signal-bear {
+    color: var(--brand-state-error);
+    background: color-mix(in srgb, var(--brand-state-error) 12%, transparent);
+  }
+  .signal-neutral {
+    color: var(--brand-ink-2);
+    background: var(--brand-surface-2);
+  }
+
+  .live-dot {
+    box-shadow: 0 0 0 0 var(--brand-state-success);
+    animation: livePulse 1.6s infinite;
+  }
+  @keyframes livePulse {
+    0% {
+      box-shadow: 0 0 0 0 var(--brand-state-success);
+    }
+    70% {
+      box-shadow: 0 0 0 6px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  .price-flash-up {
+    animation: flashUp 0.6s ease-out;
+  }
+  .price-flash-down {
+    animation: flashDown 0.6s ease-out;
+  }
+  @keyframes flashUp {
+    0% {
+      background-color: color-mix(in srgb, var(--brand-state-success) 22%, transparent);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+  @keyframes flashDown {
+    0% {
+      background-color: color-mix(in srgb, var(--brand-state-error) 22%, transparent);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+}
